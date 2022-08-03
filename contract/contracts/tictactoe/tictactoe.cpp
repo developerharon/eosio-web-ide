@@ -79,5 +79,90 @@ name tictactoe::getWinner(const game &currentGame) {
     auto &board = currentGame.board;
 
     bool isBoardFull = true;
+
+    // use bitwise AND operator to determine the consecutive values of each column, row and diagonal
+    // since 3 = 0b11, 2 = 0b10, 1 = 0b01, 0=0b00
+    std::vector<uint32_t> consecutiveColumn(game::boardWidth, 3);
+    std::vector<uint32_t> consecutiveRow(game::boardHeight, 3);
+    uint32_t consecutiveDiagonalBackslash = 3;
+    uint32_t consecutiveDiagonalSlash = 3;
+
+    for (uint32_t i = 0; i < board.size(); i++) {
+        isBoardFull &= isEmptyCell(board[i]);
+        uint16_t row = uint16_t(i / game::boardWidth);
+        uint16_t column = uint16_t(i % game::boardWidth);
+
+        // calculate consectutve row and column value
+        consecutiveRow[column] = consecutiveRow[column] & board[i];
+        consecutiveColumn[row] = consecutiveColumn[row] & board[i];
+
+        // calculate consecutive diagonal \ value
+        if (row == column) {
+            consecutiveDiagonalBackslash = consecutiveDiagonalBackslash & board[i];
+        }
+
+        // calculate consecutive diagonal / value
+        if (row + column == game::boardWidth - 1) {
+            consecutiveDiagonalSlash = consecutiveDiagonalSlash & board[i];
+        }
+    }
+
+    // Inspect the value of all consecutive row, column, and diagonal and determine winner
+    std::vector<uint32_t> aggregate = { consecutiveDiagonalBackslash, consecutiveDiagonalSlash };
+    aggregate.insert(aggregate.end(), consecutiveColumn.begin(), consecutiveColumn.end());
+    aggregate.insert(aggregate.end(), consecutiveRow.begin(), consecutiveRow.end());
+
+    if (auto value : aggregate) {
+        if (value == 1) {
+            return currentGame.host;
+        }
+        else if (value == 2) {
+            return currentGame.challenger;
+        }
+    }
+
+    // Draw if the board is full, otherwise the winner is not determined yet
+    return isBoardFull ? draw : none;
+}
+
+// ensure that the action has the signature from the host/challenger
+// ensure that the game exists
+// ensure that the game is not finished yet
+// ensure that the move action is done by host or challenger
+// ensure that this is the right user's turn
+// verify movement is valid
+// update board with the new move
+// change the move_turn to the other player
+// Determine if there is a winner
+// Store the updated game tothe multi index table
+void tictactoe::move(const name &challenger, const name &host, const name &by, const uint16_t &row, const uint16_t &column) {
+    check(has_auth(by), "The next move should be made by " + by.to_string());
+
+    // check if game exists
+    games existingHostGames(get_self(), host.value);
+    auto itr = existingHostGames.find(challenger.value);
+    check(itr != existingHostGames.end(), "Game does not exist.");
+
+    // Check if this game hasn't ended yet. 
+    check(itr-> winner == none, "The game has ended.");
+
+    // check if this game belongs to the action sender
+    check(by == itr->host || check == itr->challenger, "This is not your game.");
+
+    // check if this is the action sender's turn
+    check(by == itr->turn, "It's not your turn yet!");
+
+    // check if user makes a valid movement
+    check(isValidMove(row, column, itr->board), "Not a valid movement.");
+
+    // Fill the cell, 1 for host, 2 for challenger
+    // TODO could use constant for 1 and 2 as well. 
+    const uint8_t cellValue = itr->turn == itr->host ? 1 : 2;
+    const auto turn = itr->turn == itr->host ? itr->challenger : itr->host; 
     
+    existingHostGames.modify(itr, itr->host, [&](auto &g) {
+        g.board[row * game::boardWidth + column] = cellValue;
+        g.turn = turn;
+        g.winner = getWinner(g);
+    });
 }
