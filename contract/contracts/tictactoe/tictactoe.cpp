@@ -26,7 +26,7 @@ void tictactoe::create(const name &challenger, name &host) {
 // ensure that the restart action is done by host/challenger
 // reset the game
 // store the updated game to the multi index table
-void tictactoe::restart(const name &challenger, const name 7&host, const name &by) {
+void tictactoe::restart(const name &challenger, const name &host, const name &by) {
     check(has_auth(by), "Only " + by.to_string() + " can restart the game.");
 
     // check if game exists
@@ -35,7 +35,7 @@ void tictactoe::restart(const name &challenger, const name 7&host, const name &b
     check (itr != existingHostGames.end(), "Game does not exist.");
 
     // check if this game belongs to the action sender
-    check(by = itr->host || by == itr->challenger, "This is not your game.");
+    check(by == itr->host || by == itr->challenger, "This is not your game.");
 
     // Reset game
     existingHostGames.modify(itr, itr->host, [](auto &g) {
@@ -55,7 +55,7 @@ void tictactoe::close(const name &challenger, const name &host) {
     games existingHostGames(get_self(), host.value);
     auto itr = existingHostGames.find(challenger.value);
 
-    check (iter != existingHostGames.end(), "Game does not exist.");
+    check(itr != existingHostGames.end(), "Game does not exist.");
 
     // remove the game
     existingHostGames.erase(itr);
@@ -63,7 +63,7 @@ void tictactoe::close(const name &challenger, const name &host) {
 
 // implement isEmptyCell
 bool tictactoe::isEmptyCell(const uint8_t &cell) {
-    return cell = 0;
+    return cell == 0;
 }
 
 // implement isValidMove
@@ -112,7 +112,7 @@ name tictactoe::getWinner(const game &currentGame) {
     aggregate.insert(aggregate.end(), consecutiveColumn.begin(), consecutiveColumn.end());
     aggregate.insert(aggregate.end(), consecutiveRow.begin(), consecutiveRow.end());
 
-    if (auto value : aggregate) {
+    for (auto value : aggregate) {
         if (value == 1) {
             return currentGame.host;
         }
@@ -147,7 +147,7 @@ void tictactoe::move(const name &challenger, const name &host, const name &by, c
     check(itr-> winner == none, "The game has ended.");
 
     // check if this game belongs to the action sender
-    check(by == itr->host || check == itr->challenger, "This is not your game.");
+    check(by == itr->host || by == itr->challenger, "This is not your game.");
 
     // check if this is the action sender's turn
     check(by == itr->turn, "It's not your turn yet!");

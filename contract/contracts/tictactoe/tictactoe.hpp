@@ -16,6 +16,9 @@ class [[eosio::contract("tictactoe")]] tictactoe : public contract {
         // Use the base class constructor.
         tictactoe(name receiver, name code, datastream<const char*> ds) : contract(receiver, code, ds) { }
 
+        static constexpr name none = "none"_n;
+        static constexpr name draw = "draw"_n;
+
         // declare the game data structure.
         struct [[eosio::table]] game {
             static constexpr uint16_t boardWidth = 3;
@@ -24,7 +27,9 @@ class [[eosio::contract("tictactoe")]] tictactoe : public contract {
             game() : board(boardWidth * boardHeight, 0) {}
 
             // account name of host, challenger and turn to store whose turn it is. 
-            name challenger, host, turn;
+            name challenger;
+            name host;
+            name turn;
 
             // none, draw, name of host, name of challenger
             name winner = none;
@@ -51,7 +56,7 @@ class [[eosio::contract("tictactoe")]] tictactoe : public contract {
         };
 
         // define the game data structure using the multi-index table template. 
-        typedef eosio::multi-index<"games"_n, game> games;
+        typedef eosio::multi_index<"games"_n, game> games;
 
         [[eosio::action]]
         void create(const name &challenger, name &host);
@@ -67,6 +72,6 @@ class [[eosio::contract("tictactoe")]] tictactoe : public contract {
 
     private:
         bool isEmptyCell(const uint8_t &cell);
-        bool isValidMovel(const uint16_t &row, const uint16_t &column, const std::vector<uint8_t> &board);
+        bool isValidMove(const uint16_t &row, const uint16_t &column, const std::vector<uint8_t> &board);
         name getWinner(const game &currentGame);
 };
